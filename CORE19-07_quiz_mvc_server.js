@@ -1,4 +1,3 @@
-
 const express = require('express');
 const app = express();
 
@@ -8,8 +7,7 @@ app.use(bodyParser.urlencoded({extended: true}));
 
 // Import MW supporting Method Override with express
 const methodOverride = require('method-override');
-app.use(methodOverride('_method'));
-
+app.use(methodOverride('_method', {methods: ["POST", "GET"]}));
 
 // ========== MODEL ==========
 
@@ -27,21 +25,21 @@ const Quiz = sequelize.define(  // define Quiz model (table quizzes)
 );
 
 sequelize.sync() // Syncronize DB and seed if needed
-.then(() => Quiz.count())
-.then(count => {
-    if (count === 0) {
-        return Quiz.bulkCreate([
-            {question: "Capital of Italy", answer: "Rome"},
-            {question: "Capital of France", answer: "Paris"},
-            {question: "Capital of Spain", answer: "Madrid"},
-            {question: "Capital of Portugal", answer: "Lisbon"}
-        ])
-        .then(c => console.log(`DB filled with ${c.length} quizzes.`));
-    } else {
-        console.log(`DB exists & has ${count} quizzes.`);
-    }
-})
-.catch(console.log);
+    .then(() => Quiz.count())
+    .then(count => {
+        if (count === 0) {
+            return Quiz.bulkCreate([
+                {question: "Capital of Italy", answer: "Rome"},
+                {question: "Capital of France", answer: "Paris"},
+                {question: "Capital of Spain", answer: "Madrid"},
+                {question: "Capital of Portugal", answer: "Lisbon"}
+            ])
+                .then(c => console.log(`DB filled with ${c.length} quizzes.`));
+        } else {
+            console.log(`DB exists & has ${count} quizzes.`);
+        }
+    })
+    .catch(console.log);
 
 
 // ========== VIEWs ==========
@@ -67,8 +65,8 @@ const indexView = quizzes =>
     </head>
     <body>
         <h1>Quizzes</h1>` +
-        quizzes.map(quiz =>
-            `<div>
+    quizzes.map(quiz =>
+        `<div>
                 <a href="/quizzes/${quiz.id}/play">${quiz.question}</a>
                 <a href="/quizzes/${quiz.id}/edit"
                    class="button">Edit</a>
@@ -76,7 +74,7 @@ const indexView = quizzes =>
                    onClick="return confirm('Delete: ${quiz.question}')"
                    class="button">Delete</a>
              </div>`).join("\n") +
-            `<a href="/quizzes/new" class="button">New Quiz</a>
+    `<a href="/quizzes/new" class="button">New Quiz</a>
     </body>
     </html>`;
 
@@ -95,7 +93,8 @@ const playView = (quiz, response) =>
         <h1>Play Quiz</h1>
         <form method="get" action="/quizzes/${quiz.id}/check">
             ${quiz.question}: <br />
-            <input type="text" name="response" value="${response}" placeholder="Answer" />
+            <input type="text" name="response" value="${response}"
+placeholder="Answer" />
             <input type="submit" class="button" value="Check" /> <br />
         </form>
         <a href="/quizzes" class="button">Go back</a>
@@ -125,7 +124,7 @@ const resultView = (id, msg, response) =>
 
 
 // View to show a form to create a new quiz.
-const newView =(quiz) => {
+const newView = (quiz) => {
     return `<!doctype html>
     <html>
     <head>
@@ -136,8 +135,10 @@ const newView =(quiz) => {
     <body>
         <h1>Create New Quiz</h1>
         <form method="POST" action="/quizzes">
-            Question: <input type="text" name="question" value="${quiz.question}" placeholder="Question" /> <br />
-            Answer: <input type="text" name="answer"   value="${quiz.answer}"   placeholder="Answer" />
+            Question: <input type="text" name="question" value="${quiz.question}"
+placeholder="Question" /> <br />
+            Answer: <input type="text" name="answer"   value="${quiz.answer}"  
+placeholder="Answer" />
             <input type="submit" class="button" value="Create" /> <br />
         </form>
         <a href="/quizzes" class="button">Go back</a>
@@ -147,7 +148,7 @@ const newView =(quiz) => {
 
 
 // View to show a form to edit the given quiz.
-const editView =(quiz) => {
+const editView = (quiz) => {
     // .... introducir código
 }
 
@@ -157,9 +158,9 @@ const editView =(quiz) => {
 // GET /, GET /quizzes
 const indexController = (req, res, next) => {
     Quiz.findAll()
-    .then(quizzes => res.send(indexView(quizzes)))
-    .catch(next);
-}
+        .then(quizzes => res.send(indexView(quizzes)))
+        .catch(next);
+};
 
 //  GET  /quizzes/:id/play
 const playController = (req, res, next) => {
@@ -168,12 +169,13 @@ const playController = (req, res, next) => {
 
     const response = req.query.response || "";
 
-    Quiz.findByPk(id)
-    .then(quiz => quiz ?
-        res.send(playView(quiz, response)) :
-        next(new Error(`Quiz ${id} not found.`)))
-    .catch(next);
+    Quiz.findByPk(id)   // Sequelize v5 utiliza findByPk en vez de findById (esta deprecado)
+        .then(quiz => quiz ?
+            res.send(playView(quiz, response)) :
+            next(new Error(`Quiz ${id} not found.`)))
+        .catch(next);
 };
+
 
 //  GET  /quizzes/:id/check
 const checkController = (req, res, next) => {
@@ -182,14 +184,12 @@ const checkController = (req, res, next) => {
     const id = Number(req.params.id);
     if (Number.isNaN(id)) return next(`id "${req.params.id}" is not a number.`);
 
-    Quiz.findByPk(id)
+    Quiz.findByPk(id)   // Sequelize v5 utiliza findByPk en vez de findById (esta deprecado)
         .then(quiz => {
-            if (!quiz) return next(new Error(`Quiz ${id} not found.`));
-
             const msg = (quiz.answer.toLowerCase().trim() ===
                 response.toLowerCase().trim()) ?
-                `Yes, "${response}" is the ${quiz.question}` :
-                `No, "${response}" is not the ${quiz.question}`;
+                `Yes, "${response}" is the ${quiz.question}`
+                : `No, "${response}" is not the ${quiz.question}`;
             return res.send(resultView(id, msg, response));
         })
         .catch(next);
@@ -200,16 +200,16 @@ const checkController = (req, res, next) => {
 const newController = (req, res, next) => {
     const quiz = {question: "", answer: ""};
     res.send(newView(quiz));
- };
+};
 
 // POST /quizzes
 const createController = (req, res, next) => {
     let {question, answer} = req.body;
 
     Quiz.create({question, answer})
-    .then(quiz => res.redirect('/quizzes'))
-    .catch(next);
- };
+        .then(quiz => res.redirect('/quizzes'))
+        .catch(next);
+};
 
 //  GET /quizzes/:id/edit
 const editController = (req, res, next) => {
@@ -223,17 +223,17 @@ const updateController = (req, res, next) => {
 
 // DELETE /quizzes/:id
 const destroyController = (req, res, next) => {
-     // .... introducir código
- };
+    // .... introducir código
+};
 
 
 // ========== ROUTES ==========
 
-app.get(['/', '/quizzes'],    indexController);
-app.get('/quizzes/:id/play',  playController);
+app.get(['/', '/quizzes'], indexController);
+app.get('/quizzes/:id/play', playController);
 app.get('/quizzes/:id/check', checkController);
-app.get('/quizzes/new',       newController);
-app.post('/quizzes',          createController);
+app.get('/quizzes/new', newController);
+app.post('/quizzes', createController);
 
 // ..... crear rutas e instalar los MWs para:
 //   GET  /quizzes/:id/edit
