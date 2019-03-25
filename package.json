@@ -2,9 +2,9 @@
   "name": "CORE19-07_quiz_mvc_server",
   "version": "1.0.0",
   "description": "CORE19-07_quiz_mvc_server",
-  "main": "main.js",
+  "main": "CORE19-07_quiz_mvc_server.js",
   "scripts": {
-    "start": "node main.js",
+    "start": "node CORE19-07_quiz_mvc_server.js",
     "checks": "node tests/launcher.js",
     "zip": "node tests/compress.js CORE19-07_quiz_mvc_server"
   },
