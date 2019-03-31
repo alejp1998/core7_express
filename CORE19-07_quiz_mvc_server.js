@@ -10,7 +10,7 @@ const methodOverride = require('method-override');
 app.use(methodOverride('_method', {methods: ["POST", "GET"]}));
 
 // ========== MODEL ==========
-
+//Creamos base de datos para almacenar los quizzes comunes a todos los usuarios
 const Sequelize = require('sequelize');
 
 const options = {logging: false, operatorsAliases: false};
@@ -24,6 +24,7 @@ const Quiz = sequelize.define(  // define Quiz model (table quizzes)
     }
 );
 
+//La inicializamos con las preguntas iniciales
 sequelize.sync() // Syncronize DB and seed if needed
     .then(() => Quiz.count())
     .then(count => {
@@ -45,13 +46,53 @@ sequelize.sync() // Syncronize DB and seed if needed
 // ========== VIEWs ==========
 
 // CSS style to include into the views:
+//Estilo a aplicar a todas las vistas
 const style = `
         <style>
-            .button { display: inline-block; text-decoration: none;
-                padding: 2px 6px; margin: 2px;
-                background: #4479BA; color: #FFF;
-                border-radius: 4px; border: solid 1px #20538D; }
-            .button:hover { background: #356094; }
+            *{
+              font-family: Arial !important;
+              font-size: calc(2vw);
+            }
+            h1{
+              font-size: calc(2vw);
+              color: #15CFC0;
+            }
+            .edit{
+              padding: 2px 6px; margin: 2px;
+              background: #14AC5E; color: white;
+              border-radius: 4px; border: solid 1px #20538D;
+              border-style: solid;
+            }
+            .delete{
+              padding: 2px 6px; margin: 2px;
+              background: #F1154B; color: white;
+              border-radius: 4px; border: solid 1px #20538D;
+              border-style: solid;
+            }
+            .new{
+              padding: 2px 6px; margin: 2px;
+              background: #15CFC0; color: white;
+              border-radius: 4px; border: solid 1px #20538D;
+              border-style: solid;
+            }
+            .reset{
+              padding: 2px 6px; margin: 2px;
+              background: #BBBFC1; color: white;
+              border-radius: 4px; border: solid 1px #20538D;
+              border-style: solid;
+            }
+            .create,.update,.check{
+              padding: 2px 6px; margin: 2px;
+              background: #E6732B; color: white;
+              border-radius: 4px; border: solid 1px #20538D;
+              border-style: solid;
+            }
+            .question{
+              color: #293BC6;
+            }
+            .answer{
+              color: blue;
+            }
         </style>`;
 
 // View to display all the quizzes passed into the quizzes parameter.
@@ -64,17 +105,22 @@ const indexView = quizzes =>
         ${style}
     </head>
     <body>
-        <h1>Quizzes</h1>` +
+        <h1>Quizzes</h1>
+        <table class="quizzes>"` +
     quizzes.map(quiz =>
-        `<div>
-                <a href="/quizzes/${quiz.id}/play">${quiz.question}</a>
-                <a href="/quizzes/${quiz.id}/edit"
-                   class="button">Edit</a>
-                <a href="/quizzes/${quiz.id}?_method=DELETE"
+        `<tr><div>
+                <td><a class="question" href="/quizzes/${quiz.id}/play">${quiz.question}</a></td>
+                <td><a href="/quizzes/${quiz.id}/edit"
+                   class="edit">Edit</a></td>
+                <td><a href="/quizzes/${quiz.id}?_method=DELETE"
                    onClick="return confirm('Delete: ${quiz.question}')"
-                   class="button">Delete</a>
-             </div>`).join("\n") +
-    `<a href="/quizzes/new" class="button">New Quiz</a>
+                   class="delete">Delete</a></td>
+             </div></tr>`).join("\n") +
+
+             `<tr>
+              <td><a href="/quizzes/new" class="new">New Quiz</a></td>
+              <tr>
+      </table>
     </body>
     </html>`;
 
@@ -93,11 +139,11 @@ const playView = (quiz, response) =>
         <h1>Play Quiz</h1>
         <form method="get" action="/quizzes/${quiz.id}/check">
             ${quiz.question}: <br />
-            <input type="text" name="response" value="${response}"
+            <input type="text" class="answer" name="response" value="${response}"
 placeholder="Answer" />
-            <input type="submit" class="button" value="Check" /> <br />
+            <input type="submit" class="check" value="Check" /> <br />
         </form>
-        <a href="/quizzes" class="button">Go back</a>
+        <a href="/quizzes" class="check">Go back</a>
     </body>
     </html>`;
 
@@ -135,11 +181,11 @@ const newView = (quiz) => {
     <body>
         <h1>Create New Quiz</h1>
         <form method="POST" action="/quizzes">
-            Question: <input type="text" name="question" value="${quiz.question}"
+            Question: <input type="text" class="question"name="question" value="${quiz.question}"
 placeholder="Question" /> <br />
-            Answer: <input type="text" name="answer"   value="${quiz.answer}"  
+            Answer: <input type="text" class="answer" name="answer"   value="${quiz.answer}"
 placeholder="Answer" />
-            <input type="submit" class="button" value="Create" /> <br />
+            <input type="submit" class="create" value="Create" /> <br />
         </form>
         <a href="/quizzes" class="button">Go back</a>
     </body>
@@ -148,8 +194,26 @@ placeholder="Answer" />
 
 
 // View to show a form to edit the given quiz.
-const editView = (quiz) => {
-    // .... introducir código
+const editView = (quiz,response) => {
+  return `<!doctype html>
+  <html>
+  <head>
+      <meta charset="utf-8">
+      <title>P7: Quiz</title>
+      ${style}
+  </head>
+  <body>
+      <h1>Edit Quiz</h1>
+      <form method="POST" action="/quizzes/${quiz.id}?_method=PUT">
+          Question: <input type="text" class="question" name="question" value="${quiz.question}"
+placeholder="Question" /> <br />
+          Answer: <input type="text" class="answer" name="answer"   value="${quiz.answer}"
+placeholder="Answer" />
+          <input type="submit" class="edit" value="Edit" /> <br />
+      </form>
+      <a href="/quizzes" class="button">Go back</a>
+  </body>
+  </html>`;
 }
 
 
@@ -213,17 +277,34 @@ const createController = (req, res, next) => {
 
 //  GET /quizzes/:id/edit
 const editController = (req, res, next) => {
-    // .... introducir código
+  const id = Number(req.params.id);
+  if (Number.isNaN(id)) return next(`id "${req.params.id}" is not a number.`);
+
+  const response = req.query.response || "";
+
+  Quiz.findByPk(id)   // Sequelize v5 utiliza findByPk en vez de findById (esta deprecado)
+      .then(quiz => quiz ?
+          res.send(editView(quiz, response)) :
+          next(new Error(`Quiz ${id} not found.`)))
+      .catch(next);
 };
 
 //  PUT /quizzes/:id
 const updateController = (req, res, next) => {
-    // .... introducir código
+  const id = Number(req.params.id);
+  let {question, answer} = req.body;
+
+  Quiz.update({question, answer},{where: {id}})
+      .then(quiz => res.redirect('/quizzes'))
+      .catch(next);
 };
 
 // DELETE /quizzes/:id
 const destroyController = (req, res, next) => {
-    // .... introducir código
+    const id = Number(req.params.id);
+    Quiz.destroy({where: {id}})
+        .then(quiz => res.redirect('/quizzes'))
+        .catch(next);
 };
 
 
@@ -235,6 +316,9 @@ app.get('/quizzes/:id/check', checkController);
 app.get('/quizzes/new', newController);
 app.post('/quizzes', createController);
 
+app.get('/quizzes/:id/edit',editController);
+app.put('/quizzes/:id',updateController);
+app.delete('/quizzes/:id',destroyController);
 // ..... crear rutas e instalar los MWs para:
 //   GET  /quizzes/:id/edit
 //   PUT  /quizzes/:id
